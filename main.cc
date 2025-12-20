@@ -1,7 +1,7 @@
 import <iostream>;
 import <string>;
-import <fstream>
-
+import <fstream>;
+import DatabaseConfig;
 using namespace std;
 // They get tge chance to create a new db, choose from an existing list of db's to maybe add stuff to create new fields, they can delete
 // fields, entrys, edit an entry fields maybe thgouh column number or column name
@@ -13,6 +13,9 @@ using namespace std;
 // Maybe we could include database roles e.g admin which would branch into the admin adding people and this people can only have certain rights like e.g only admin can
 // delete a database and then in view database we could show the fields, the users and also their roles and maybe view database s different based on roles
 // If we allow people to just add a column we could give the option of filling up the fields
+
+void handleMainMenu();
+
 void deleteDB(){
     char input_c;
     cout << "You have chosen 'Delete Database'. Enter 'Y' to continue and 'N' to return to Main Menu" << endl;
@@ -30,10 +33,18 @@ void deleteDB(){
 }
 
 void createDB(){
-    // the db should have an id and the id should equal to the username of the individual_uniquedbname
+    
 }
 
 void renameDB(){
+
+}
+
+void modifyDB(){
+
+}
+
+void viewDB(){
 
 }
 
@@ -49,28 +60,28 @@ void handleMainMenu(){
     cout << "5. Rename an existing database" << endl;
     cout << "Enter Option(1-5) Here: ";
     // maybe we could add a reorder column option? might be more difficult since we are currently using maps for storing info
-    while(!cin >> input_i){
-        cout << "\nInvalid Option, Please try again(or enter 0 to break): "
+    while(!(cin >> input_i)){
+        cout << "\nInvalid Option, Please try again(or enter 0 to break): ";
     }
     if(input_i == 0){
         cout << "Thank you, your changes(if any) have been saved!!!!" << endl;
     }
-    switch (input)
+    switch (input_i)
     {
     case 1:
-        createDB();
+        createDB(); // create a new database
         break;
     case 2:
-        modifyDB();
+        modifyDB(); // modify existing databases
         break;
     case 3:
-        viewDB();
+        viewDB(); // view existing databases
         break;
     case 4:
-        deleteDB();
+        deleteDB(); // delete existing databases
         break;
     case 5:
-        renameDB();
+        renameDB(); // rename an existing database
         break;
     default:
         return;
