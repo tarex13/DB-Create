@@ -10,9 +10,9 @@ using namespace std;
 // database names should  be unique and no space
 // maybe add an option that if the user presses(maybe we can implement a response for a ctrl cmd) a key or enters sth we take them to the beginning options
 // We could also add a back/option for the user to go back a previous menu page
-// Maybe we could include database roles e.g admin which would branch into the admin adding people and this people can only have certaink rights like e.g only admin can
+// Maybe we could include database roles e.g admin which would branch into the admin adding people and this people can only have certain rights like e.g only admin can
 // delete a database and then in view database we could show the fields, the users and also their roles and maybe view database s different based on roles
-
+// If we allow people to just add a column we could give the option of filling up the fields
 void deleteDB(){
     char input_c;
     cout << "You have chosen 'Delete Database'. Enter 'Y' to continue and 'N' to return to Main Menu" << endl;
@@ -34,7 +34,7 @@ void createDB(){
 }
 
 void renameDB(){
-    
+
 }
 
 void handleMainMenu(){
@@ -48,7 +48,7 @@ void handleMainMenu(){
     cout << "4. Delete an existing database" << endl;
     cout << "5. Rename an existing database" << endl;
     cout << "Enter Option(1-5) Here: ";
-
+    // maybe we could add a reorder column option? might be more difficult since we are currently using maps for storing info
     while(!cin >> input_i){
         cout << "\nInvalid Option, Please try again(or enter 0 to break): "
     }
@@ -72,10 +72,6 @@ void handleMainMenu(){
     case 5:
         renameDB();
         break;
-    case 1:
-        /* code */
-        break;
-    
     default:
         return;
     }
