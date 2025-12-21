@@ -44,11 +44,11 @@ bool typeAllowed(string type)
             type == "String");
 }
 
-class Database
+export class Database
 {
     string owner;// owner username
     string dbName;// database name
-    string dbId; //database identification unique
+    string dbId; //database identification unique - we could use uuid too ig
     map<string, string> column;               // This contains information about the columns being made in the database. Contains column name and type
     vector<vector<unique_ptr<BaseRow>>> rows; // Store each row as BaseRow pointers
 
@@ -93,6 +93,10 @@ public:
             return dbName;
         }
         return "";
+    }
+
+    void setDBName(string newName){
+        dbName = newName;
     }
 
     // title represents column name/title, type represents column type(lowercase) e.g integer
