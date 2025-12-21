@@ -118,6 +118,54 @@ public:
         return true;
     }
 
+    // This function performs the modify options given in modifyDB(inmain)
+    bool modify(int i){
+        switch (i)
+        {
+        case 1:{
+            string dbName;
+            string type;
+            cout << "Enter new column name(or 'return' to go to Modify Menu): ";
+            cin >> dbName;
+            if(dbName == "return"){
+                return false;
+            }
+            cout << "Next choose from one of the column types below" << endl;
+            cout << "1. String\n2. Integer\n3. Boolean\n4. Float\n5. Char\n" << endl;
+            cout << "Enter the Column type, as above(case sensitive): "
+            cin >> type;
+            return addColumn(dbName, type);// later we look at the logic of where we ask the user whether they want to provide a default fill or maybe a bulk fill for current data in the database 
+        }
+        case 2:{
+            // Add the new row
+            break;
+        }
+        case 3:{
+            for(auto it = rows.begin(); i != rows.end(); i++){
+                if((*it))
+            }
+            break;
+        }
+        case 4:{
+            break;
+        }
+        case 5:{
+            break;
+        }
+        case 6:{
+            break;
+        }
+        case 7:{
+            break;
+        }
+        case 8:{
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
     // This is the overriden version with type included
     // fill represents a value for bulk fillings
     template <typename T>

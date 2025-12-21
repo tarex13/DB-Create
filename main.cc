@@ -34,7 +34,7 @@ int findDB(vector<unique_ptr<Database>> &databases, string name)
 void deleteDB(vector<unique_ptr<Database>> &databases)
 {
     
-    cout << "--------------------------DELETE VIEW--------------------------" << endl;
+    cout << "--------------------------DELETE MENU--------------------------" << endl;
     char input_c;
     cout << "You have chosen 'Delete Database'. Enter 'Y' to continue and 'N' to return to Main Menu" << endl;
     cin >> input_c;
@@ -55,7 +55,7 @@ void deleteDB(vector<unique_ptr<Database>> &databases)
 
 unique_ptr<Database> createDB(vector<unique_ptr<Database>> &databases)
 {
-    cout << "--------------------------CREATE VIEW--------------------------" << endl;
+    cout << "--------------------------CREATE MENU--------------------------" << endl;
     string input_s;
     cout << "To go to main menu, enter 'return'" << endl;
     cout << "Enter the New DataBase (Unique) Name(or return): ";
@@ -77,7 +77,7 @@ unique_ptr<Database> createDB(vector<unique_ptr<Database>> &databases)
 
 void renameDB(vector<unique_ptr<Database>> &databases)
 {
-    cout << "--------------------------RENAME DATABASE VIEW--------------------------" << endl;
+    cout << "--------------------------RENAME DATABASE MENU--------------------------" << endl;
     string inputOldDB;
     string inputNewDB;
     int dbFound;
@@ -113,11 +113,12 @@ void modifyDB(vector<unique_ptr<Database>> &databases)
 {
     string input_s;
     int dbFound;
-    cout << "--------------------------MODIFY VIEW--------------------------" << endl;
+    int input_i;
+    cout << "--------------------------MODIFY MENU--------------------------" << endl;
     cout << "Note: To view available databases enter 'return' to go to main menu" << endl;
     cout << "Enter the name of the Database you want to modify(or return):";
     cin >> input_s;
-    if (inputOldDB == "return")
+    if (input_s == "return")
     {
         handleMainMenu(databases);
         return;
@@ -129,20 +130,32 @@ void modifyDB(vector<unique_ptr<Database>> &databases)
         return modifyDB(databases);
     }
     cout << "Editing Database '" << databases[dbFound]->identify("name") << "'";
-    cout << "Here are your available options: (Enter 1-5)" << endl;
+    cout << "Here are your available options: (Enter 1-9)" << endl;
     cout << "1. Add a New Column" << endl;
     cout << "2. Add a New Row" << endl;
-    cout << "3. Delete a Row" << endl;
+    cout << "3. Delete a Row(Use Filter to find ID beforehand if unknown)" << endl;
     cout << "4. Delete a Column" << endl;
-    cout << "5. Edit a Row" << endl;
+    cout << "5. Edit a Row(Use Filter to find ID beforehand if unknown)" << endl;
     cout << "6. Edit a Column Name" << endl;
     cout << "7. Bulk Edit A column" << endl; // for bulk edit we can give options for edit all or edit by filter through things like equal, greater than, less than, starts with, ends with, etc
-    cout << "8. Print DataBase" << endl;
+    cout << "8. Print DataBase" << endl;    
+    cout << "9. DataBase Filter" << endl;
+    cout << "Enter Option(1-9) Here: ";
+    if(!(cin >> input_i) || input_i < 1 || input_i > 8){
+        cout << "Invalid Option, Please try again: ";
+        return modifyDB(databases);
+    }
+    bool returnValue = databases[dbFound]->modify(input_i);
+    // false means either we selected user selected to go back or add failed
+    if(!returnValue){
+        modifyDB(databases);
+    }
+    
 }
 
 void viewDB(vector<unique_ptr<Database>> &databases)
 {
-    cout << "--------------------------VIEW DATABASES--------------------------" << endl;
+    cout << "--------------------------VIEW MENU--------------------------" << endl;
     if (databases.empty())
     {
         cout << "You currently have no created Databases. Create one in Main Menu. \n Redirecting....\n" << endl;
@@ -215,7 +228,7 @@ void handleMainMenu(vector<unique_ptr<Database>> &databases)
     }
     case 2:
     {
-        modifyDB(); // modify existing databases
+        modifyDB(databases); // modify existing databases
         break;
     }
     case 3:
