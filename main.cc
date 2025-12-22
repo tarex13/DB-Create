@@ -19,6 +19,7 @@ using namespace std;
 const int NOT_FOUND = -1;
 void handleMainMenu(vector<unique_ptr<Database>> &databases);
 
+// findDB locates the database called <name> and returns it's index or NOT_FOUND
 int findDB(vector<unique_ptr<Database>> &databases, string name)
 {
     for (size_t i = 0; i < databases.size(); i++)
@@ -36,10 +37,12 @@ void deleteDB(vector<unique_ptr<Database>> &databases)
     
     cout << "--------------------------DELETE MENU--------------------------" << endl;
     char input_c;
+    string dbName;
     cout << "You have chosen 'Delete Database'. Enter 'Y' to continue and 'N' to return to Main Menu" << endl;
     cin >> input_c;
     if (input_c == 'N' || input_c == 'n')
     {
+        cout << "Redirecting..." << endl;
         handleMainMenu(databases);
         return;
     }
@@ -48,6 +51,19 @@ void deleteDB(vector<unique_ptr<Database>> &databases)
     {
         cout << "Invalid Input, you've been redirected to the main menu" << endl;
         handleMainMenu(databases);
+        return;
+    }
+
+    cout << "Enter the name of the database you'd like to delete(or return to go to Main Menu): ";
+    cin >> dbName;
+    if(dbName == "return"){
+        handleMainMenu(databases);
+    }
+    int pos = findDB(databases, dbName);
+    if(pos == NOT_FOUND){
+        cout << "Invalid Database Name!!! Redirecting to Main Menu..." << endl;
+        handleMainMenu(databases);
+        return;
     }
 
     // code for deleting the database maybe we first startoff with showing the database records, maybe view existing database and this can share something
@@ -71,7 +87,7 @@ unique_ptr<Database> createDB(vector<unique_ptr<Database>> &databases)
         return createDB(databases);
     }
 
-    cout << "Database successfully created.\nGo To Main Menu o modify new database. \nRedirecting to Main Menu...." << endl;
+    cout << "Database successfully created.\nGo To Main Menu to modify new database. \nRedirecting to Main Menu...." << endl;
     return make_unique<Database>("admin", input_s);
 }
 
@@ -129,7 +145,7 @@ void modifyDB(vector<unique_ptr<Database>> &databases)
         cout << "Database name not found. Please Try again" << endl;
         return modifyDB(databases);
     }
-    cout << "Editing Database '" << databases[dbFound]->identify("name") << "'";
+    cout << "Editing Database '" << databases[dbFound]->identify("name") << "'" << endl;
     cout << "Here are your available options: (Enter 1-9)" << endl;
     cout << "1. Add a New Column" << endl;
     cout << "2. Add a New Row" << endl;
@@ -141,15 +157,20 @@ void modifyDB(vector<unique_ptr<Database>> &databases)
     cout << "8. Print DataBase" << endl;    
     cout << "9. DataBase Filter" << endl;
     cout << "Enter Option(1-9) Here: ";
+    
     if(!(cin >> input_i) || input_i < 1 || input_i > 8){
         cout << "Invalid Option, Please try again: ";
         return modifyDB(databases);
     }
-    bool returnValue = databases[dbFound]->modify(input_i);
-    // false means either we selected user selected to go back or add failed
-    if(!returnValue){
-        modifyDB(databases);
+    bool returnValue = databases[dbFound]->modify(input_i);// var no longer used might use in future
+    // false means either user selected to go back or add failed
+    ///cout << returnValue << "Is" << endl;
+    if(returnValue == true){
+        cout << "Action Successful!!!" << endl;
     }
+    cout << "Redirecting to Main Menu...." << endl;
+    modifyDB(databases);
+    
     
 }
 
@@ -174,6 +195,7 @@ void handleMainMenu(vector<unique_ptr<Database>> &databases)
     cout << "--------------------------MAIN MENU--------------------------" << endl;
     int input_i;
     cout << "Welcome to DB Create, your C++ Database Creation System." << endl;
+    cout << "NOTE: NEVER hit Ctrl D use Ctrl C instead" << endl;
     cout << "Here are your available options: (Enter 1-5)" << endl;
     cout << "1. Create a New Database" << endl;
     cout << "2. Modify an existing database" << endl;
