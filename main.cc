@@ -47,7 +47,7 @@ void deleteDB(vector<unique_ptr<Database>> &databases)
         return;
     }
     // Maybe we can look at delay in cpp if there is any
-    if (input_c != 'Y' || input_c != 'y')
+    if (input_c != 'Y' && input_c != 'y')
     {
         cout << "Invalid Input, you've been redirected to the main menu" << endl;
         handleMainMenu(databases);

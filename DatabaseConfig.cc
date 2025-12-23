@@ -343,6 +343,33 @@ public:
             return true;
             break;
         }
+        case 9:{
+            string cName;
+            string query;
+            string query_iss;
+            vector
+            cout << "Enter Column Name to filter below: " << endl;
+            cin.ignore();
+            getline(cin, cName);
+            cout << "Here are your current filter options: " << endl;
+            cout << "1. Starts with(Sw)" << endl;
+            cout << "2. Ends with(Ew)" << endl;
+            cout << "3. Equals to(Et)" << endl;
+            cout << "4. Less than(Lt)" << endl;
+            cout << "5. Greater than(Gt)" << endl;
+            cout << "6. Contains(Ct)" << endl;
+            cout << "Filter query style: $cmd value $OR $cmd value $AND $cmd value" << endl;
+            cout << "E.g.                $Sw    a  $AND  $Ew   B " << endl;
+            cout << "Enter query below: " << endl;
+            cin.ignore();
+            getline(cin, query);
+            istringstream iss{query};
+            while(iss >> query_iss){
+                if(){
+
+                }
+            }
+        }
         default:
             return false;
         }
