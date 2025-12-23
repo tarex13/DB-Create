@@ -2,3 +2,4 @@ gcm.cache/
 *.o
 libxlsxwriter/
 file.cc
+.vscode/
