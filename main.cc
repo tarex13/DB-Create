@@ -282,3 +282,5 @@ int main()
     vector<unique_ptr<Database>> databases;
     handleMainMenu(databases);
 }
+
+// maybe have an option for setworkingDB so they dont have to choose a database with each action they take
