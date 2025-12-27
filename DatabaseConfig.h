@@ -215,26 +215,26 @@ public:
     
     void saveCell(int y, int x, lxw_worksheet *worksheet) override
     {
-        //cout << "DEBUG 112" << endl;
+        ////cout << "DEBUG 112" << endl;
         if(column.empty()){
             //cout << "DEBUG 11" << endl;
-            cout << "  NULL";
-            worksheet_write_string(worksheet, y, x, "NULL", NULL);
+            //cout << "  NULL";
+            worksheet_write_string(worksheet, y + 1, x, "NULL", NULL);
             return;
         }
         if constexpr (std::is_same_v<T, std::string>) {
-            worksheet_write_string(worksheet, y, x, column[y].c_str(), NULL);
+            worksheet_write_string(worksheet, y + 1, x, column[y].c_str(), NULL);
         } else if constexpr (std::is_same_v<T, bool>) {
-            worksheet_write_boolean(worksheet, y, x, column[y], NULL);
+            worksheet_write_boolean(worksheet, y + 1, x, column[y], NULL);
         } else if constexpr (std::is_arithmetic_v<T>) {
-            worksheet_write_number(worksheet, y, x, static_cast<double>(column[y]), NULL);
+            worksheet_write_number(worksheet, y + 1, x, static_cast<double>(column[y]), NULL);
         } else {
             std::ostringstream oss;
             oss << column[y];
             std::string s = oss.str();
-            worksheet_write_string(worksheet, y, x, s.c_str(), NULL);
+            worksheet_write_string(worksheet, y + 1, x, s.c_str(), NULL);
         }
-        cout << column[y];
+        ////cout << column[y];
     }
 
     void deleteCell(int at) override
@@ -386,6 +386,7 @@ public:
         cout << "# of Cols: " << columns.size() << endl;
         cout << "# of Rows: " << height << endl; // Formatting here might suck a little bit
         cout << "Row Names: ";
+        // Print the Row headings
         for (size_t i = 0; i < columns.size(); i++)
         {
             cout << columns[i]->identify() << "   ";
@@ -419,20 +420,22 @@ public:
         cout << endl;
     }
 
-    void saveDB(lxw_worksheet *worksheet)
+    void saveDB(lxw_worksheet *worksheet, lxw_format *header, lxw_format *bold)
     {
+        
         worksheet_set_column(worksheet, 0, 0, 25, NULL);
-        worksheet_write_string(worksheet, 0, 0, ("Database Name: " + dbName).c_str(), NULL);
+        worksheet_write_string(worksheet, 0, 0, ("Database Name: " + dbName).c_str(), bold);
         //cout << "Database Name: " << dbName << endl;
         //cout << "# of Cols: " << columns.size() << endl;
-        worksheet_write_string(worksheet, 1, 0, ("# of Cols: " + std::to_string(columns.size())).c_str(), NULL);
+        worksheet_write_string(worksheet, 1, 0, ("# of Cols: " + std::to_string(columns.size())).c_str(), bold);
         //cout << "# of Rows: " << height << endl; // Formatting here might suck a little bit
-        worksheet_write_string(worksheet, 2, 0, ("# of Rows: " + std::to_string(height)).c_str(), NULL);
+        worksheet_write_string(worksheet, 2, 0, ("# of Rows: " + std::to_string(height)).c_str(), bold);
         //cout << "Row Names: ";
+        // Row headings
         for (size_t i = 0; i < columns.size(); i++)
         {
             //cout << columns[i]->identify() << "   ";
-            worksheet_write_string(worksheet, 1, i + 1, (columns[i]->identify()).c_str(), NULL);
+            worksheet_write_string(worksheet, 0, i + 1, (columns[i]->identify()).c_str(), header);
         }
         for (int i = 0; i < height; i++)
         {
@@ -440,7 +443,7 @@ public:
             for (size_t j = 0; j < columns.size(); j++)
             {
                 //cout << "DEBUG 113" << endl;
-                columns[j]->saveCell(i + 1, j + 1, worksheet);
+                columns[j]->saveCell(i, j + 1, worksheet);
                 //cout << "  |";
             }
         }

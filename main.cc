@@ -47,19 +47,19 @@ void deleteDB(vector<unique_ptr<Database>> &databases)
     cout << "--------------------------DELETE MENU--------------------------" << endl;
     char input_c;
     string dbName;
-    cout << "You have chosen 'Delete Database'. Enter 'Y' to continue and 'N' to return to Main Menu" << endl;
+    cout << "You have chosen 'Delete Database'. Enter 'Y' to continue and 'N' to return to Main Menu: " ;
     cin >> input_c;
     if (input_c == 'N' || input_c == 'n')
     {
-        cout << "Redirecting..." << endl;
-        handleMainMenu(databases);
+        cout << YELLOW << "Redirecting..." << YELLOW << endl;
+        
         return;
     }
     // Maybe we can look at delay in cpp if there is any
     if (input_c != 'Y' && input_c != 'y')
     {
-        cout << "Invalid Input, you've been redirected to the main menu" << endl;
-        handleMainMenu(databases);
+        cout << RED <<  "Invalid Input, you've been redirected to the main menu" << RESET << endl;
+        
         return;
     }
 
@@ -67,16 +67,25 @@ void deleteDB(vector<unique_ptr<Database>> &databases)
     cin >> dbName;
     if (dbName == "return")
     {
-        handleMainMenu(databases);
-    }
-    int pos = findDB(databases, dbName);
-    if (pos == NOT_FOUND)
-    {
-        cout << "Invalid Database Name!!!\n Redirecting to Main Menu...\n" << endl;
-        handleMainMenu(databases);
         return;
     }
+    // int pos = findDB(databases, dbName);
+    // if (pos == NOT_FOUND)
+    // {
+    //     cout << "Invalid Database Name!!!\n Redirecting to Main Menu...\n" << endl;
+    //     handleMainMenu(databases);
+    //     return;
+    // }
 
+    for(auto it = databases.begin(); it != databases.end(); it++){
+        if((*it)->identify("name") == dbName){
+            databases.erase(it);
+            cout << GREEN << "Database Successfully Deleted. Redirecting to Main Menu..." << RESET << endl;
+            return;
+        }
+    }
+    cout << RED << "Invalid Database Name!!!\n Redirecting to Main Menu...\n" << RESET << endl;
+    return;
     // code for deleting the database maybe we first startoff with showing the database records, maybe view existing database and this can share something
 }
 
@@ -191,7 +200,8 @@ void viewDB(vector<unique_ptr<Database>> &databases)
     cout << "--------------------------VIEW MENU--------------------------" << endl;
     if (databases.empty())
     {
-        cout << YELLOW <<  "You currently have no created Databases. Create one in Main Menu. \n Redirecting....\n" << RESET << endl;
+        cout << YELLOW <<  "You currently have no created Databases. Create one in Main Menu. \nRedirecting to Main Menu....\n" << RESET << endl;
+        return;
     }
     cout << "Here are your current existing databases:" << endl; // when user logic is added we could do sth like databases for user and the user is
     for (size_t i = 0; i < databases.size(); i++)
@@ -203,13 +213,26 @@ void viewDB(vector<unique_ptr<Database>> &databases)
 }
 
 void saveDB(vector<unique_ptr<Database>> &databases){
+    
+    lxw_workbook  *workbook  = workbook_new("Database.xlsx");
     for(auto &db : databases){   
         const string fileName = (db->identify("name")) + ".xlsx";
-        lxw_workbook  *workbook  = workbook_new(fileName.c_str());
-        lxw_worksheet *worksheet = workbook_add_worksheet(workbook, NULL);
-        db->saveDB(worksheet);
-        workbook_close(workbook);
+
+        lxw_format *header = workbook_add_format(workbook);
+        lxw_format *bold = workbook_add_format(workbook);
+        
+        // formatting for the table
+        format_set_font_color(header, LXW_COLOR_WHITE);
+        format_set_bold(bold);
+        format_set_bold(header);
+        format_set_align(header, LXW_ALIGN_CENTER);
+        format_set_align(header, LXW_ALIGN_VERTICAL_CENTER);
+        format_set_fg_color(header, 0x808080);
+
+        lxw_worksheet *worksheet = workbook_add_worksheet(workbook, fileName.c_str());
+        db->saveDB(worksheet, header, bold);
     }
+    workbook_close(workbook);
     cout << "Action Complete" << endl;
     return;
 }
@@ -250,7 +273,15 @@ void handleMainMenu(vector<unique_ptr<Database>> &databases)
 
         if (input_i == 0)
         {
-            cout << "Thank you, your changes have been saved!" << endl;
+            cout << "Enter 1 to save your changes or 0 to exit without saving: ";
+            cin >> input_i;
+            if(input_i == 1){
+                cout << "Thanks for using DB Create. Saving changes now..." << endl;
+                saveDB(databases);
+                return;
+            }
+            cout << BOLDMAGENTA << "Thanks for using DB Create your changes have been discarded" << RESET << endl;
+            return;
             return;
         }
 
