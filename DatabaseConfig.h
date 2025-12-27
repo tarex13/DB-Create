@@ -1,16 +1,18 @@
-//! This file has been discontinued
+#ifndef DATABASECONFIG_H
+#define DATABASECONFIG_H
 
-export module DatabaseConfig;
-
-import <iostream>;
-import <memory>;
-import <map>;
-import <vector>;
-import <sstream>;
-import <string>;
-import <algorithm>;
+#include <iostream>
+#include <memory>
+#include <map>
+#include <vector>
+#include <sstream>
+#include <string>
+#include <algorithm>
+#include "./libxlsxwriter/include/xlsxwriter.h"
 
 using namespace std;
+
+class Database;
 
 // Base class for Row with a virtual destructor
 class BaseCol
@@ -21,12 +23,14 @@ public:
     virtual void deleteCell(int at) = 0;
     virtual void editCell(int at) = 0;
     virtual void bulkEdit() = 0;
-    virtual void filter(string query) = 0;
+    virtual void fillColumn() = 0;
+    virtual void saveCell(int y, int x, lxw_worksheet *worksheet) = 0;
+    virtual vector<int> filter(string query) = 0;
     virtual void printCell(int at) = 0;
     virtual ~BaseCol() = 0; // Virtual destructor
 };
 
-BaseCol::~BaseCol() {}
+inline BaseCol::~BaseCol() {}
 
 // Templated Row class
 template <typename T>
@@ -36,6 +40,99 @@ class Column : public BaseCol
     vector<T> column;
     string title;
     int height; // starts from 1
+
+
+    
+    bool filterMet(string filterType, T input, string filterQuery)
+    {
+        T filterQuery_T;
+        if (type != "String")
+        {
+            istringstream iss{filterQuery};
+            iss >> filterQuery_T;
+        }
+        if constexpr (std::is_same_v<T, std::string>)
+        {
+            //cout << "Debug1: filterQuery: " << filterQuery << endl;
+            //cout << "Debug1: input: " << input << endl;
+            //cout << "Debug1: filterType: " << filterType << endl;
+            //cout << "Debug1: filterQuery_T: " << filterQuery_T << endl;
+            //cout << "Debug1: type: " << filterType << endl;
+            //cout << "Debug1: input.find(filterQuery, 0): " << input.find(filterQuery, 0) << endl;
+
+            if (filterType == "Sw" && type == "String" && input.find(filterQuery, 0) == 0)
+            { // starts with, ends with, and contains only works with strings 
+                //cout << "Debug12" << filterQuery << endl;
+                //cout << "Debug12" << input << endl;
+                //cout << "Debug12" << filterType << endl;
+                //cout << "Debug12" << filterQuery_T << endl;
+                return true;
+            }
+            else if (filterType == "Ew" && type == "String" && (input.rfind(filterQuery) + filterQuery.length() == input.length()))
+            {
+                return true;
+            }
+            else if (filterType == "Ct" && type == "String" && input.find(filterQuery) != std::string::npos)
+            {
+                return true;
+            }
+        }
+        else if (filterType == "Et" && input == filterQuery_T)
+        {
+            return true;
+        }
+        else if (filterType == "Lt" && input < filterQuery_T)
+        {
+            return true;
+        }
+        else if (filterType == "Gt" && input > filterQuery_T)
+        {
+            return true;
+        }
+
+        //cout << "Debug11" << filterQuery << endl;
+        //cout << "Debug11" << input << endl;
+        //cout << "Debug11" << filterType << endl;
+        //cout << "Debug11" << filterQuery_T << endl;
+        return false;
+    }
+
+    vector<int> filterHelper(string current, istringstream &iss, vector<int> &filteredColumn)
+    {
+        string filterQuery;
+        vector<int> filtered;
+        if (current[0] == '$')
+        {
+            current = current.substr(1);
+        }
+        iss >> filterQuery;
+        if (!iss)
+        {
+            return filtered;
+        }
+        if (filteredColumn.empty())
+        {
+            for (size_t i = 0; i < column.size(); i++)
+            {
+                if (filterMet(current, column[i], filterQuery))
+                {
+                    filtered.emplace_back(i);
+                }
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < filteredColumn.size(); i++)
+            {
+                if (filterMet(current, column[filteredColumn[i]], filterQuery))
+                {
+                    filtered.emplace_back(i);
+                }
+            }
+        }
+
+        return filtered;
+    }
 
 public:
     Column(string type, string title, int height, T value) : type{type}, title{title}, height{height}
@@ -51,15 +148,13 @@ public:
     void addToColumn() override
     {
         T input;
-        // string input_s;
         if (type == "String")
         {
-            cin.ignore();
             if constexpr (std::is_same_v<T, std::string>)
             {
+                cin.ignore();
                 getline(cin, input);
             }
-            // input = input_s;
         }
         else
         {
@@ -76,21 +171,20 @@ public:
         column.emplace_back(input);
         height++;
     }
-    //! remove from column Function
-    void fillColumn(T value)
-    {
 
-        for (int i = 0; i < height; i++)
+    void fillColumn() override
+    {
+        T input;
+        cin >> input;
+        for (size_t i = 0; static_cast<int>(i) < height; i++)
         {
-            try
-            {
-                column.at(i);
-                column[i] = value;
-            }
-            catch (...)
-            {
-                column.emplace_back(value);
-            }
+            if (i < column.size()) {
+                // Index exists, just update it
+                column[i] = input;
+            } else {
+                // Index doesn't exist, add it to the end
+                column.emplace_back(input);
+}
         }
     }
 
@@ -109,12 +203,40 @@ public:
 
     void printCell(int at) override
     {
+        //cout << "DEBUG 112" << endl;
         if(column.empty()){
-            cout << "NULL";
+            //cout << "DEBUG 11" << endl;
+            cout << "  NULL";
             return;
         }
         cout << column[at];
     }
+
+    
+    void saveCell(int y, int x, lxw_worksheet *worksheet) override
+    {
+        //cout << "DEBUG 112" << endl;
+        if(column.empty()){
+            //cout << "DEBUG 11" << endl;
+            cout << "  NULL";
+            worksheet_write_string(worksheet, y, x, "NULL", NULL);
+            return;
+        }
+        if constexpr (std::is_same_v<T, std::string>) {
+            worksheet_write_string(worksheet, y, x, column[y].c_str(), NULL);
+        } else if constexpr (std::is_same_v<T, bool>) {
+            worksheet_write_boolean(worksheet, y, x, column[y], NULL);
+        } else if constexpr (std::is_arithmetic_v<T>) {
+            worksheet_write_number(worksheet, y, x, static_cast<double>(column[y]), NULL);
+        } else {
+            std::ostringstream oss;
+            oss << column[y];
+            std::string s = oss.str();
+            worksheet_write_string(worksheet, y, x, s.c_str(), NULL);
+        }
+        cout << column[y];
+    }
+
     void deleteCell(int at) override
     {
         int counter = 1;
@@ -143,7 +265,6 @@ public:
         cout << "Enter new value for column " << title << ": ";
         if (type == "String")
         {
-            // cout << endl;
             cin.ignore();
             if constexpr (std::is_same_v<T, std::string>)
             {
@@ -168,125 +289,43 @@ public:
         }
     }
 
-    bool filterMet(string filterType, T input, string filterQuery)
-    {
-        T filterQuery_T;
-        if (type != "String")
-        {
-            istringstream iss{filterQuery};
-            iss >> filterQuery_T;
-        }
-        if constexpr (std::is_same_v<T, std::string>)
-        {
 
-            if (filterType == "Sw" && type == "String" && input.find(filterQuery, 0) == 0)
-            { // starts with/ ends with/ contains only works with strings
-                return true;
-            }
-            else if (filterType == "Ew" && type == "String" && input.find(filterQuery, 0) == (input.length() - filterQuery.length() - 1))
-            {
-                return true;
-            }
-            else if (filterType == "Ct" && type == "String" && input.find(filterQuery) != std::string::npos)
-            {
-                return true;
-            }
-        }
-
-        else if (filterType == "Et" && input == filterQuery_T)
-        {
-            return true;
-        }
-        else if (filterType == "Lt" && input < filterQuery_T)
-        {
-            return true;
-        }
-        else if (filterType == "Gt" && input > filterQuery_T)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    // make private
-    // might need to add safeguards to ensure sw and ew only work with strings
-    vector<int> filterHelper(string current, istringstream &iss, vector<int> filteredColumn)
-    {
-        string filterQuery;
-        vector<int> filtered;
-        if (current[0] == '$')
-        {
-            // bool met;
-            current = current.substr(1);
-            iss >> filterQuery;
-            if (!iss)
-            {
-                return filtered;
-            }
-            if (filteredColumn.empty())
-            {
-                for (size_t i = 0; i < column.size(); i++)
-                {
-                    if (filterMet(current, column[i], filterQuery))
-                    {
-                        filtered.emplace_back(i);
-                    }
-                }
-            }
-            else
-            {
-                for (size_t i = 0; i < filteredColumn.size(); i++)
-                {
-                    if (filterMet(current, column[filteredColumn[i]], filterQuery))
-                    {
-                        filtered.emplace_back(i);
-                    }
-                }
-            }
-        }
-        return filteredColumn;
-    }
-
-    void filter(string query) override
+    vector<int> filter(string query) override
     {
         string query_iss;
+        //cout << "Debug11f" << query << endl;
         vector<int> columnFiltered;
         vector<int> blank;
         istringstream iss{query};
         while (iss >> query_iss)
         {
+            //cout << "Debug161" << query_iss << endl;
             if (query_iss[0] == '$')
             {
+                //cout << "Debug141" << query_iss[0] << endl;
                 query_iss = query_iss.substr(1);
                 // note on how this 'or' works, this 'or' works on the entire column and then adds whatever is new to the current filtered coolumn
                 if (query_iss == "OR")
                 {
-                    // vector<T> copy = columnFiltered;
                     iss >> query_iss; // This second one is to get the actual command which should follow from an 'and' or an 'or' as given by the format
                     vector<int> columnFilteredNew = filterHelper(query_iss, iss, blank);
                     // now we merge the vector we recently got from filterHelper and what we currently have
-                    // 1. Add everything from the new vector to the old one
+                    // Add everything from the new vector to the old one
                     columnFiltered.insert(columnFiltered.end(), columnFilteredNew.begin(), columnFilteredNew.end());
-                    // 2. Sort the vector
+                    // Sort the vector
                     std::sort(columnFiltered.begin(), columnFiltered.end());
-                    // 3. Remove duplicates
-                    columnFiltered.erase(std::unique(columnFiltered.begin(), columnFiltered.end()), columnFiltered.end());
+                    //3. Remove duplicatescolumnFiltered.erase(std::unique(columnFiltered.begin(), columnFiltered.end()), columnFiltered.end());
                     continue;
                     // note on how this 'and' works this 'and' works on the already filtered column and removes whatever doesnt fit the 'and's command
                 }
                 else if (query_iss == "AND")
                 {
-                    cin >> query_iss;
+                    iss >> query_iss;
                 }
                 columnFiltered = filterHelper(query_iss, iss, columnFiltered);
-
-                // we might as well do the printing here
             }
         }
-
-        Database::printDB(columnFiltered);
-
+        return columnFiltered;
     }
 };
 
@@ -298,7 +337,7 @@ bool typeAllowed(string type)
             type == "String");
 }
 
-export class Database
+class Database
 {
     string owner;                        // owner username
     string dbName;                       // database name
@@ -340,40 +379,71 @@ public:
         height = 0;
     }
 
-    void printDB(vector<int> n){
-            cout << "-.0.--.0.--.0.--.0.--.0.--Printing Database--.0.--.0.--.0.--.0.--.0.-" << endl;
-            cout << "Database Name: " << dbName << endl;
-            cout << "# of Cols: " << columns.size() << endl;
-            cout << "# of Rows: " << height << endl; // Formatting here might suck a little bit
-            cout << "Row Names: ";
-            for (size_t i = 0; i < columns.size(); i++)
+    void printDB(vector<int> n, bool emptyFine)
+    {
+        cout << "-.0.--.0.--.0.--.0.--.0.--Printing Database--.0.--.0.--.0.--.0.--.0.-" << endl;
+        cout << "Database Name: " << dbName << endl;
+        cout << "# of Cols: " << columns.size() << endl;
+        cout << "# of Rows: " << height << endl; // Formatting here might suck a little bit
+        cout << "Row Names: ";
+        for (size_t i = 0; i < columns.size(); i++)
+        {
+            cout << columns[i]->identify() << "   ";
+        }
+        if (n.empty() && emptyFine)
+        {
+            for (int i = 0; i < height; i++)
             {
-                cout << columns[i]->identify() << "   ";
-            }
-            if(n.empty()){
-                for (int i = 0; i < height; i++)
+                cout << "\nRow " << i + 1 << ": " << "|  ";
+                for (size_t j = 0; j < columns.size(); j++)
                 {
-                    cout << "\nRow " << i + 1 << ": " << "|  ";
-                    for (size_t j = 0; j < columns.size(); j++)
-                    {
-
-                        columns[j]->printCell(i);
-                        cout << "  |";
-                    }
-                }
-            }else{
-                for (int i = 0; i < n.size(); i++)
-                {
-                    cout << "\nRow " << i + 1 << ": " << "|  ";
-                    for (size_t j = 0; j < columns.size(); j++)
-                    {
-
-                        columns[j]->printCell(i);
-                        cout << "  |";
-                    }
+                    //cout << "DEBUG 113" << endl;
+                    columns[j]->printCell(i);
+                    cout << "  |";
                 }
             }
-            cout << endl;
+        }
+        else
+        {
+            for (size_t i = 0; i < n.size(); i++)
+            {
+                cout << "\nRow " << i + 1 << ": " << "|  ";
+                for (size_t j = 0; j < columns.size(); j++)
+                {
+
+                    columns[j]->printCell(n[i]);
+                    cout << "  |  ";
+                }
+            }
+        }
+        cout << endl;
+    }
+
+    void saveDB(lxw_worksheet *worksheet)
+    {
+        worksheet_set_column(worksheet, 0, 0, 25, NULL);
+        worksheet_write_string(worksheet, 0, 0, ("Database Name: " + dbName).c_str(), NULL);
+        //cout << "Database Name: " << dbName << endl;
+        //cout << "# of Cols: " << columns.size() << endl;
+        worksheet_write_string(worksheet, 1, 0, ("# of Cols: " + std::to_string(columns.size())).c_str(), NULL);
+        //cout << "# of Rows: " << height << endl; // Formatting here might suck a little bit
+        worksheet_write_string(worksheet, 2, 0, ("# of Rows: " + std::to_string(height)).c_str(), NULL);
+        //cout << "Row Names: ";
+        for (size_t i = 0; i < columns.size(); i++)
+        {
+            //cout << columns[i]->identify() << "   ";
+            worksheet_write_string(worksheet, 1, i + 1, (columns[i]->identify()).c_str(), NULL);
+        }
+        for (int i = 0; i < height; i++)
+        {
+            //cout << "\nRow " << i + 1 << ": " << "|  ";
+            for (size_t j = 0; j < columns.size(); j++)
+            {
+                //cout << "DEBUG 113" << endl;
+                columns[j]->saveCell(i + 1, j + 1, worksheet);
+                //cout << "  |";
+            }
+        }
     }
 
     string identify(string type = "id")
@@ -397,42 +467,38 @@ public:
     {
         dbName = newName;
     }
-
     // title represents column name/title, type represents column type(lowercase) e.g integer
     // return types: false means the add was invalid maybe because of duplicate column name, or wrong column type, true is add was successful
     // #alteration: we could also include column allowances like can this column be empty for example
-    bool addColumn(string title, string type)
+    bool addColumn(string title, string type, bool fill = false)
     {
-        // cout <<"Hello" << endl;
-        if (!typeAllowed(type) || column.count(title) == 1)
+        if (column.count(title) == 1)
         {
             cout << "Column Name already exists. Please try another!!!" << endl;
             return false;
         }
-        // cout <<"Ho" << endl;
+        if(!typeAllowed(type)){
+            cout << "Invalid Type. Please Try again!!!" << endl;
+            return false;
+        }
         column[title] = type;
-        // cout <<"Helllo" << endl;
         unique_ptr<BaseCol> add = createCol(type, title);
-
-        // Resize rows vector and add the new row
-        // columns.push_back(vector<unique_ptr<BaseCol>>());
+        if(fill){
+            add->fillColumn();
+        }
         columns.emplace_back(std::move(add));
-
         return true;
     }
 
-    // we add a new row and print success and also the new row id, ////but dont modify it yet
     void addRow()
-    { // for now no return is added at this point to prevent complicating things
+    {
         for (auto &i : columns)
         {
             cout << i->identify() << "(" << i->identify("type") << ")" << ": ";
             i->addToColumn();
-            // cout << endl;
         }
     }
 
-    // returns -1 if column is not found else return the location of the column;
     int colNameToInt(string colName)
     {
         int id = 0;
@@ -469,7 +535,11 @@ public:
                  << endl;
             cout << "Enter the Column type, as above(case sensitive): ";
             cin >> type;
-            return addColumn(colName, type); // later we look at the logic of where we ask the user whether they want to provide a default fill or maybe a bulk fill for current data in the database . if we do this remember to increment height
+            if(height != 0){
+                cout << "Enter fill for new column: "; // add an option for adding a fill and then a default for the field
+                return addColumn(colName, type, true);
+            }
+            return addColumn(colName, type);// later we look at the logic of where we ask the user whether they want to provide a default fill or maybe a bulk fill for current data in the database . if we do this remember to increment height
         }
         case 2:
         {
@@ -573,8 +643,6 @@ public:
             cout << "Enter column name to bulk edit: ";
             cin.ignore();
             getline(cin, input_name);
-            // cout << "Enter new value for column " << input_name << ": " << endl;
-            // getline(cin, input_value);
             int id = colNameToInt(input_name);
             if (id == -1)
             {
@@ -586,9 +654,8 @@ public:
         }
         case 8:
         {
-            //! We segfault if we add a new column recently unfilled and we havent yet filled
             vector<int> blank;
-            printDB(blank);
+            printDB(blank, true);
             return true;
             break;
         }
@@ -597,7 +664,6 @@ public:
             string cName;
             string query;
             string input;
-            // vector
             cout << "Enter Column Name to filter below: " << endl;
             cin.ignore();
             getline(cin, cName);
@@ -611,7 +677,7 @@ public:
             cout << "Filter query style: $cmd value $OR $cmd value $AND $cmd value" << endl;
             cout << "E.g.                $Sw    a  $AND  $Ew   B " << endl;
             cout << "Enter query below: " << endl;
-            cin.ignore();
+            // cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             getline(cin, query);
             int cNum = colNameToInt(cName);
             if (cNum == -1)
@@ -619,29 +685,30 @@ public:
                 cout << "Column doestn't exist." << endl;
                 return false;
             }
-            columns[cNum]->filter(query);
+            //cout << "Debug1d1" << query << endl;
+            printDB(columns[cNum]->filter(query), false);
             return true;
         }
         default:
             return false;
         }
     }
-
     // This is the overriden version with type included
     // fill represents a value for bulk fillings
-    template <typename T>
-    bool addColumn(string title, string type, T fill)
-    {
-        if (!typeAllowed(type) || column.count(title) == 1)
-        {
-            return false;
-        }
-        column[title] = type;
-        unique_ptr<BaseCol> add = createCol(type, title);
-        static_cast<Column<T> *>(add.get())->fillColumn(fill); // Cast to correct Row type
-        columns.emplace_back(std::move(add));
-        return true;
-    }
+    //template <typename T>
+    //bool addColumn(string title, string type, T fill)
+    //{
+    //    if (!typeAllowed(type) || column.count(title) == 1)
+     //   {
+    //        return false;
+    //    }
+    //    column[title] = type;
+    //    if()
+    //    unique_ptr<BaseCol> add = createCol(type, title);
+    //    static_cast<Column<T> *>(add.get())->fillColumn();
+    //    columns.emplace_back(std::move(add));
+    //    return true;
+    //}
 };
 
-//! need to fix when a new column is added into a database that is already filled and we try to print we segfault i know why I just have to find the best fix for it
+#endif // DATABASECONFIG_H
