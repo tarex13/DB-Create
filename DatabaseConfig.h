@@ -10,7 +10,16 @@
 #include <algorithm>
 #include "./libxlsxwriter/include/xlsxwriter.h"
 
+
+#define RED     "\033[31m"      /* Red */
+#define GREEN   "\033[32m"      /* Green */
+#define YELLOW  "\033[33m"      /* Yellow */
+#define RESET   "\033[0m"      /* RESET */
+#define BOLDMAGENTA "\033[1m\033[35m"      /* Bold Magenta */
+
 using namespace std;
+
+inline static const int NOT_FOUND_ = -1;
 
 class Database;
 
@@ -23,6 +32,7 @@ public:
     virtual void deleteCell(int at) = 0;
     virtual void editCell(int at) = 0;
     virtual void bulkEdit() = 0;
+    virtual void setColName(string newName) = 0;
     virtual void fillColumn() = 0;
     virtual void saveCell(int y, int x, lxw_worksheet *worksheet) = 0;
     virtual vector<int> filter(string query) = 0;
@@ -163,7 +173,7 @@ public:
             {
                 cin.clear();
                 cin.ignore();
-                cout << "Invaid Addition. Try again(" << type << "): ";
+                cout << RED << "Invaid Addition. Try again(" << type << "): " << RESET;
                 addToColumn();
                 return;
             }
@@ -175,7 +185,16 @@ public:
     void fillColumn() override
     {
         T input;
-        cin >> input;
+        if (type == "String")
+        {
+            cin.ignore();
+            if constexpr (std::is_same_v<T, std::string>)
+            {
+                getline(cin, input);
+            }
+        }else{
+            cin >> input;
+        }
         for (size_t i = 0; static_cast<int>(i) < height; i++)
         {
             if (i < column.size()) {
@@ -254,10 +273,10 @@ public:
     void editCell(int at) override
     {
         T newValue;
-        cout << "Current Value: " << column[at] << endl;
+        cout << "Current Value: " << column[at - 1] << endl;
         cout << "New Value: ";
         cin >> newValue;
-        column[at] = newValue;
+        column[at - 1] = newValue;
     }
     void bulkEdit() override
     {
@@ -265,7 +284,7 @@ public:
         cout << "Enter new value for column " << title << ": ";
         if (type == "String")
         {
-            cin.ignore();
+            //cin.ignore();
             if constexpr (std::is_same_v<T, std::string>)
             {
                 getline(cin, newValue);
@@ -278,7 +297,7 @@ public:
             {
                 cin.clear();
                 cin.ignore();
-                cout << "Invalid Input. Please try again!!!" << endl;
+                cout << RED << "Invalid Input. Please try again!!!" << RESET << endl;
                 bulkEdit();
                 return;
             }
@@ -288,7 +307,10 @@ public:
             column[i] = newValue;
         }
     }
-
+    void setColName(string newName) override
+    {
+        title = newName;
+    }
 
     vector<int> filter(string query) override
     {
@@ -381,10 +403,10 @@ public:
 
     void printDB(vector<int> n, bool emptyFine)
     {
-        cout << "-.0.--.0.--.0.--.0.--.0.--Printing Database--.0.--.0.--.0.--.0.--.0.-" << endl;
-        cout << "Database Name: " << dbName << endl;
-        cout << "# of Cols: " << columns.size() << endl;
-        cout << "# of Rows: " << height << endl; // Formatting here might suck a little bit
+        cout << BOLDMAGENTA << "-.0.--.0.--.0.--.0.--.0.--Printing Database--.0.--.0.--.0.--.0.--.0.-" << RESET << endl;
+        cout << BOLDMAGENTA << "Database Name: " << dbName  << RESET << endl;
+        cout << BOLDMAGENTA << "# of Cols: " << columns.size()  << RESET << endl;
+        cout << BOLDMAGENTA << "# of Rows: " << height  << RESET << endl; // Formatting here might suck a little bit
         cout << "Row Names: ";
         // Print the Row headings
         for (size_t i = 0; i < columns.size(); i++)
@@ -400,7 +422,7 @@ public:
                 {
                     //cout << "DEBUG 113" << endl;
                     columns[j]->printCell(i);
-                    cout << "  |";
+                    cout << "  |  ";
                 }
             }
         }
@@ -477,11 +499,11 @@ public:
     {
         if (column.count(title) == 1)
         {
-            cout << "Column Name already exists. Please try another!!!" << endl;
+            cout << RED << "Column Name already exists. Please try another!!!" << RESET << endl;
             return false;
         }
         if(!typeAllowed(type)){
-            cout << "Invalid Type. Please Try again!!!" << endl;
+            cout << RED << "Invalid Type. Please Try again!!!" << RESET  << endl;
             return false;
         }
         column[title] = type;
@@ -513,7 +535,7 @@ public:
             }
             id++;
         }
-        return -1;
+        return NOT_FOUND_;
     }
     // This function performs the modify options given in modifyDB(in main)
 
@@ -550,12 +572,12 @@ public:
             cout << "To add a new row, you must fill each required field." << endl;
             if (columns.empty())
             {
-                cout << "No Columns = No Rows" << endl;
+                cout << BOLDMAGENTA << "No Columns = No Rows" << RESET  << endl;
                 return false;
             }
             addRow();
             height++;
-            cout << "Row successfully added!!!" << endl;
+            cout << GREEN << "Row successfully added!!!" << RESET  << endl;
             return true;
             break;
         }
@@ -566,7 +588,7 @@ public:
             cin >> input_i;
             if (input_i > height || input_i < 1)
             {
-                cout << "Invalid Row Number." << endl;
+                cout << RED << "Invalid Row Number." << RESET  << endl;
                 return false;
             }
             for (size_t i = 0; i < columns.size(); i++)
@@ -595,25 +617,18 @@ public:
         {
             string input_s;
             int input_i;
-            cout << "Enter the column name you would like to edit: ";
-            cin >> input_s;
-            cout << endl;
             cout << "Enter the Row Number you would like to edit: ";
             cin >> input_i;
-            cout << endl;
-            int id = colNameToInt(input_s);
-            if (id == -1)
-            {
-                cout << "Invalid Column Name, please try again!!!" << endl;
-                return false;
-            }
+            //int id = colNameToInt(input_s);
             if (input_i > height || input_i < 1)
             {
-                cout << "Invalid Row Number, please try again!!!" << endl;
+                cout << RED << "Invalid Row Number, please try again!!!" << RESET  << endl;
                 return false;
             }
-            columns[id]->editCell(input_i);
-            cout << "Edit Successful. Redirecting to Main Menu...";
+            for(size_t i = 0; i < columns.size(); i++){
+                columns[i]->editCell(input_i);
+            }
+            cout << GREEN << "Edit Successful. Redirecting to Main Menu..." << RESET << endl;
             return true;
         }
         case 6:
@@ -625,18 +640,22 @@ public:
             cin >> input_oldName;
             if (column.count(input_oldName) != 1)
             {
-                cout << "Column name does not exists, please try another one!!!" << endl;
+                cout << RED << "Column name does not exists, please try another one!!!" << RESET  << endl;
                 return modify(i);
             }
-            cout << "Enter column's new name";
+            cout << "Enter column's new name:";
             cin >> input_newName;
+            if(input_newName == input_oldName){
+                return true;
+            }
             if (column.count(input_newName) == 1)
             {
-                cout << "Column already exists, please try another one!!!" << endl;
+                cout << RED << "Column already exists, please try another one!!!" << RESET << endl;
                 return modify(i);
             }
             column[input_newName] = column[input_oldName];
             column.erase(input_oldName);
+            columns[colNameToInt(input_oldName)]->setColName(input_newName);
             return true;
         }
         case 7:
@@ -647,9 +666,9 @@ public:
             cin.ignore();
             getline(cin, input_name);
             int id = colNameToInt(input_name);
-            if (id == -1)
+            if (id == NOT_FOUND_)
             {
-                cout << "Invalid Column Name. Please try another one!!!" << endl;
+                cout << RED << "Invalid Column Name. Please try another one!!!" << RESET  << endl;
                 return false;
             }
             columns[id]->bulkEdit();
@@ -683,9 +702,9 @@ public:
             // cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             getline(cin, query);
             int cNum = colNameToInt(cName);
-            if (cNum == -1)
+            if (cNum == NOT_FOUND_)
             {
-                cout << "Column doestn't exist." << endl;
+                cout << RED << "Column doestn't exist." << RESET  << endl;
                 return false;
             }
             //cout << "Debug1d1" << query << endl;
